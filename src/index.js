@@ -6,6 +6,7 @@ const client = new Discord.Client()
 
 client.on('ready', () => {
     console.log('ready!')
+    covid19.fetchData()
 })
 
 client.on('message', async (message) => {
@@ -17,15 +18,15 @@ client.on('message', async (message) => {
             message.channel.send(cmd)
             break
         case '!g':
-            result = await covid19.queryGlobal()
+            result = covid19.queryGlobal()
             message.channel.send(result)
             break
         case '!c':
-             options = {
+            options = {
                 country: msg[1],
                 datetime: (msg[2] === undefined ? null : msg[2])
             }
-            result = await covid19.queryCountry(options)
+            result = covid19.queryCountry(options)
             message.channel.send(result)
             break
         case '!graph':

@@ -4,78 +4,109 @@ class Covid19 {
 
     constructor() {
         this.countriesName = null
+        this.global = null
+        this.countriesCache = {}
     }
 
-    async updateCountriesName() {
-        if (this.countriesName === null) {
-            return new Promise((resolve, reject) => {
-                axios.get('https://api.covid19api.com/countries')
-                    .then((result) => {
-                        this.countriesName = result.data.reduce((acc, item) => {
-                            acc.push(item.Slug)
-                            return acc
-                        }, [])
-                        resolve(null)
-                    })
-                    .catch(err => console.log(err))
-            })
-        }
-    }
-
-    async validName(name) {
-        await this.updateCountriesName()
-        return (this.countriesName.find(iname => iname === name))
-    }
-
-    getGlobalApi() {
-        return new Promise((resolve, reject) => {
-            axios.get('https://api.covid19api.com/summary')
+    async fetchCountries(start) {
+        const intervalFetch = async (start, finish) => {
+            console.log(`fetching from ${start} -> ${finish}`)
+            if (start >= this.countriesName.length) {
+                console.log('fetch done!')
+                return -1
+            }
+            let promises = []
+            for (let i = start; i < finish; i ++) {
+                let name = this.countriesName[i]
+                promises.push(axios.get('https://api.covid19api.com/country/' + name))
+            }
+            return Promise.all(promises)
                 .then((result) => {
-                    resolve(result)
+                    for (let i = start; i < finish; i++) {
+                        console.log(result[i - start].status)
+                        let name = this.countriesName[i]
+                        this.countriesCache[name] = result[i - start].data
+                    }
+                    return finish
                 })
-                .catch((err) => {
-                    console.log(err)
+                .catch(err => {
+                    let name = err.config.url.split('/')[4]
+                    let id = this.countriesName.findIndex(e => e === name)
+                    return (id + 1 >= this.countriesName.length ? -1 : id + 1)
                 })
-        })
+        }
+
+        setTimeout(async () => {
+            let newStart = await intervalFetch(start, Math.min(start + 5, this.countriesName.length))
+            if (newStart !== -1) {
+                this.fetchCountries(newStart)
+            }
+        }, 1000)
     }
 
-    getCountryApi(country, datetime) {
-        return new Promise((resolve, reject) => {
-            axios.get('https://api.covid19api.com/country/' + country)
-                .then(result => {
-                    result = result.data.find(element => equal(new Date(element.Date), datetime))
-                    resolve(result)
-                })
-                .catch(err => console.log(err))
-        })
+    fetchData() {
+        axios.get('https://api.covid19api.com/summary')
+            .then((result) => {
+                this.global = result.data
+            })
+            .catch((err) => {
+                console.log(err)
+            })
+
+        axios.get('https://api.covid19api.com/countries')
+            .then((result) => {
+                this.countriesName = result.data.reduce((acc, item) => {
+                    acc.push(item.Slug)
+                    return acc
+                }, [])
+            })
+            .then(() => {
+                this.fetchCountries(0)
+            })
+            .catch(err => console.log(err))
     }
 
-    async queryGlobal() {
-        let result = await this.getGlobalApi()
-        return Object.entries(result.data.Global).reduce((acc, pair) => {
+    validName(name) {
+        return (this.countriesName.find(iname => iname === name) !== undefined)
+    }
+
+    getGlobal() {
+        return this.global
+    }
+
+    getCountry(country, datetime) {
+        if (this.countriesCache[country] === undefined) {
+            return undefined
+        }
+        return this.countriesCache[country].find(e => equal(new Date(e.Date), datetime))
+    }
+
+    queryGlobal() {
+        let result = this.getGlobal()
+        return Object.entries(result.Global).reduce((acc, pair) => {
             acc += pair[0].toString() + ': ' + pair[1].toString() + '\n'
             return acc
         }, '')
     }
 
-    async queryCountry(options) {
-        if (await this.validName(options.country) === false) {
+    queryCountry(options) {
+        if (!this.validName(options.country)) {
             return "invalid country name!"
         }
         options.country = options.country.toLowerCase()
         let ret
         if (options.datetime === null) {
-            let result = await this.getGlobalApi()
-            result = result.data.Countries.find(element => element.Slug === options.country)
+            let result = this.getGlobal()
+            result = result.Countries.find(element => element.Slug === options.country)
             const keys = ['Country', 'NewConfirmed', 'TotalConfirmed', 'NewDeaths', 'TotalDeaths', 'NewRecovered', 'TotalRecovered', 'Date']
             ret = keys.reduce((acc, key) => {
                 acc += key + ': ' + result[key].toString() + '\n'
                 return acc
             }, '')
         } else {
-            let result = await this.getCountryApi(options.country, options.datetime)
+            let result = this.getCountry(options.country, options.datetime)
             if (result === undefined) {
-                ret = `no data at ${options.datetime}`
+                ret = `data not updated at ${options.datetime}`
             } else {
                 const keys = ['Country', 'Confirmed', 'Deaths', 'Recovered', 'Active', 'Date']
                 ret = keys.reduce((acc, item) => {
