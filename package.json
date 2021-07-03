@@ -1,0 +1,17 @@
+{
+  "name": "reprt",
+  "version": "1.0.0",
+  "description": "covid-19 discord reporter",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node -r dotenv src/index.js"
+  },
+  "author": "vu quang le",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "discord.js": "^12.5.3",
+    "dotenv": "^10.0.0"
+  }
+}
