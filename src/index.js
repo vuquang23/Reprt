@@ -15,7 +15,7 @@ client.on('message', async (message) => {
     const msg = message.content.split(' ')
     switch (msg[0]) {
         case '!cmd':
-            const cmd = '!g\n' + '!c :country_name [datetime] | [datetime example: 03-07-2021]\n' + '!graph :country_name :status (cf - confirmed/d - deaths/r - recovered/a - active)\n'
+            const cmd = '!g\n' + '!c :country_name [datetime] | [datetime example: 03-07-2021]\n' + '!p :country_name\n'
             message.channel.send(cmd)
             break
         case '!g':
@@ -30,8 +30,17 @@ client.on('message', async (message) => {
             result = covid19.queryCountry(options)
             message.channel.send(result)
             break
-        case '!graph':
-
+        case '!p':
+            let ok = await covid19.loadChart(msg[1])
+            if (ok === false) {
+                message.channel.send(`invalid country name! or data not updated at ${msg[1]}`)
+            } else {
+                message.channel.send(`Country: ${msg[1]}`, {
+                    files: [
+                        `../data/${msg[1]}`
+                    ]
+                })
+            }
             break
     }
 })

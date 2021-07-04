@@ -1,4 +1,5 @@
 const axios = require('axios')
+const chartManager = require('../chart')
 
 class Covid19 {
 
@@ -116,6 +117,17 @@ class Covid19 {
             }
         }
         return ret
+    }
+
+    async loadChart(countryName) {
+        countryName = countryName.toLowerCase()
+        if (!this.validName(countryName) || (this.countriesCache[countryName] === undefined)) {
+            return false
+        }
+        if (chartManager.existsChart(countryName)) {
+            return true
+        }
+        return chartManager.createChart(countryName, this.countriesCache[countryName])
     }
 }
 
