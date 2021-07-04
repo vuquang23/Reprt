@@ -1,6 +1,7 @@
 require('dotenv').config()
 const Discord = require('discord.js')
 const covid19 = require('./covid19')
+const schedule = require('./schedule')
 
 const client = new Discord.Client()
 
@@ -36,3 +37,6 @@ client.on('message', async (message) => {
 })
 
 client.login(process.env.TOKEN)
+
+const job = schedule(covid19.fetchData)
+job.start()
