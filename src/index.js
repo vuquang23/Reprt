@@ -38,5 +38,7 @@ client.on('message', async (message) => {
 
 client.login(process.env.TOKEN)
 
-const job = schedule(covid19.fetchData)
+const job = schedule(() => {
+    covid19.fetchData()
+})
 job.start()
